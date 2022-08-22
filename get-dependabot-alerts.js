@@ -35,6 +35,10 @@ async function DumpDependabotAlerts() {
                 ...pkgFields
               }
               vulnerableVersionRange
+              firstPatchedVersion
+              {
+                ...patchedVersionFields
+              }
             }
             vulnerableManifestFilename
             vulnerableManifestPath
@@ -42,6 +46,11 @@ async function DumpDependabotAlerts() {
           }
         }
       }
+    }
+
+
+    fragment patchedVersionFields on SecurityAdvisoryPackageVersion {
+      identifier  
     }
 
     fragment advFields on SecurityAdvisory {
@@ -58,7 +67,7 @@ async function DumpDependabotAlerts() {
     }`
     
   try {
-    console.log("org,repo,package,ecosystem,summary,severity,permalink")
+    console.log("org,repo,package,ecosystem,summary,severity,permalink,filename,currentVersion,fixedVersion")
     let hasNextPage = false
     do {
       const getVulnResult = await graphql({ query, org: org, repo: repo, cursor: pagination })
@@ -66,7 +75,17 @@ async function DumpDependabotAlerts() {
       const vulns = getVulnResult.repository.vulnerabilityAlerts.nodes
 
       for (const vuln of vulns) {
-          console.log(`${org},${repo},${vuln.securityVulnerability.package.name},${vuln.securityVulnerability.package.ecosystem},"${vuln.securityAdvisory.summary}",${vuln.securityAdvisory.severity},${vuln.securityAdvisory.permalink}`)
+          let out = `${org},${repo},${vuln.securityVulnerability.package.name},${vuln.securityVulnerability.package.ecosystem},"${vuln.securityAdvisory.summary}",${vuln.securityAdvisory.severity},${vuln.securityAdvisory.permalink}, ${vuln.vulnerableManifestPath},${vuln.vulnerableRequirements},`
+          let firstPatchedVersion = vuln.securityVulnerability.firstPatchedVersion
+          if ((firstPatchedVersion !== null) && (firstPatchedVersion !== undefined))
+          {
+                  
+              console.log(out,`${vuln.securityVulnerability.firstPatchedVersion.identifier}`)    
+          }
+          else
+          {
+              console.log(out,"undefined")
+          }
         }
 
       if (hasNextPage) {
